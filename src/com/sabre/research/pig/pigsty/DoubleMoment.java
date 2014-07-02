@@ -18,9 +18,8 @@
 package com.sabre.research.pig.pigsty;
 
 import java.io.IOException;
-import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Iterator;
-import java.util.List;
 
 import org.apache.pig.Accumulator;
 import org.apache.pig.Algebraic;
@@ -28,7 +27,6 @@ import org.apache.pig.EvalFunc;
 import org.apache.pig.FuncSpec;
 import org.apache.pig.PigException;
 import org.apache.pig.data.DataBag;
-import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
@@ -36,12 +34,12 @@ import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.backend.executionengine.ExecException;
 
+// import org.apache.hadoop.io.WritableComparable;
 
 /**
- * Generates the average of the values of the first field of a tuple. This class is Algebraic in
- * implemenation, so if possible the execution will be split into a local and global application
+ * This method should never be used directly, use {@link MOMENT}.
  */
-public class MOMENT extends EvalFunc<Double> implements Algebraic, Accumulator<Double> {
+public class DoubleMoment extends EvalFunc<Double> implements Algebraic, Accumulator<Double> {
     
     private static TupleFactory mTupleFactory = TupleFactory.getInstance();
 
@@ -81,31 +79,22 @@ public class MOMENT extends EvalFunc<Double> implements Algebraic, Accumulator<D
     static public class Initial extends EvalFunc<Tuple> {
         @Override
         public Tuple exec(Tuple input) throws IOException {
-            Tuple t = mTupleFactory.newTuple(2);
             try {
+                Tuple t = mTupleFactory.newTuple(2);
                 // input is a bag with one tuple containing
-                // the column we are trying to avg
+                // the column we are trying to avg on
                 DataBag bg = (DataBag) input.get(0);
-                Double orderOfMoment = Double.valueOf(input.get(1).toString());
-                DataByteArray dba = null;
+                Double  orderOfMoment = Double.valueOf(input.get(1).toString());
+                Double d = null;
                 if(bg.iterator().hasNext()) {
                     Tuple tp = bg.iterator().next();
-                    dba = (DataByteArray)tp.get(0);
+                    d = Math.pow((Double)(tp.get(0)), orderOfMoment);
                 }
-                t.set(0, dba != null ? Math.pow(Double.valueOf(dba.toString()), orderOfMoment) : null);
-                if (dba == null)
-                    t.set(1, 0L);
-                else
+                t.set(0, d);
+                if (d != null){
                     t.set(1, 1L);
-                return t;
-            } catch(NumberFormatException nfe) {
-                // invalid input,
-                // treat this input as null
-                try {
-                    t.set(0, null);
+                }else{    
                     t.set(1, 0L);
-                } catch (ExecException e) {
-                    throw e;
                 }
                 return t;
             } catch (ExecException ee) {
@@ -113,7 +102,7 @@ public class MOMENT extends EvalFunc<Double> implements Algebraic, Accumulator<D
             } catch (Exception e) {
                 int errCode = 2106;
                 String msg = "Error while computing average in " + this.getClass().getSimpleName();
-                throw new ExecException(msg, errCode, PigException.BUG, e);            
+                throw new ExecException(msg, errCode, PigException.BUG, e);           
             }
                 
         }
@@ -130,8 +119,7 @@ public class MOMENT extends EvalFunc<Double> implements Algebraic, Accumulator<D
             } catch (Exception e) {
                 int errCode = 2106;
                 String msg = "Error while computing average in " + this.getClass().getSimpleName();
-                throw new ExecException(msg, errCode, PigException.BUG, e);           
-            
+                throw new ExecException(msg, errCode, PigException.BUG, e);            
             }
         }
     }
@@ -159,7 +147,7 @@ public class MOMENT extends EvalFunc<Double> implements Algebraic, Accumulator<D
             } catch (Exception e) {
                 int errCode = 2106;
                 String msg = "Error while computing average in " + this.getClass().getSimpleName();
-                throw new ExecException(msg, errCode, PigException.BUG, e);           
+                throw new ExecException(msg, errCode, PigException.BUG, e);            
             }
         }
     }
@@ -179,7 +167,6 @@ public class MOMENT extends EvalFunc<Double> implements Algebraic, Accumulator<D
         for (Iterator<Tuple> it = values.iterator(); it.hasNext();) {
             Tuple t = it.next();
             Double d = (Double)t.get(0);
-            
             // we count nulls in avg as contributing 0
             // a departure from SQL for performance of 
             // COUNT() which implemented by just inspecting
@@ -203,19 +190,19 @@ public class MOMENT extends EvalFunc<Double> implements Algebraic, Accumulator<D
 
     static protected long count(Tuple input) throws ExecException {
         DataBag values = (DataBag)input.get(0);
-        long cnt = 0;
         Iterator it = values.iterator();
+        long cnt = 0;
         while (it.hasNext()){
-            Tuple t = (Tuple)it.next(); 
+            Tuple t = (Tuple)it.next();
             if (t != null && t.size() > 0 && t.get(0) != null)
-                cnt ++;
+                cnt++;
         }
-                    
         return cnt;
     }
 
     static protected Double sum(Tuple input) throws ExecException, IOException {
         DataBag values = (DataBag)input.get(0);
+        Double  orderOfMoment = Double.valueOf(input.get(1).toString());
         
         // if we were handed an empty bag, return NULL
         if(values.size() == 0) {
@@ -227,11 +214,10 @@ public class MOMENT extends EvalFunc<Double> implements Algebraic, Accumulator<D
         for (Iterator<Tuple> it = values.iterator(); it.hasNext();) {
             Tuple t = it.next();
             try{
-                DataByteArray dba = (DataByteArray)t.get(0);
-                Double d = dba != null ? Double.valueOf(dba.toString()) : null;
+                Double d = (Double)(t.get(0));
                 if (d == null) continue;
                 sawNonNull = true;
-                sum += d;
+                sum += Math.pow(d, orderOfMoment);
             }catch(RuntimeException exp) {
                 int errCode = 2103;
                 String msg = "Problem while computing sum of doubles.";
@@ -245,27 +231,13 @@ public class MOMENT extends EvalFunc<Double> implements Algebraic, Accumulator<D
             return null;
         }
     }
-
+    
     @Override
     public Schema outputSchema(Schema input) {
         return new Schema(new Schema.FieldSchema(null, DataType.DOUBLE)); 
     }
-
-    /* (non-Javadoc)
-     * @see org.apache.pig.EvalFunc#getArgToFuncMapping()
-    @Override
-    public List<FuncSpec> getArgToFuncMapping() throws FrontendException {
-        List<FuncSpec> funcList = new ArrayList<FuncSpec>();
-        funcList.add(new FuncSpec(this.getClass().getName(), Schema.generateNestedSchema(DataType.TUPLE, DataType.BAG, DataType.DOUBLE)));
-        funcList.add(new FuncSpec(DoubleMoment.class.getName(), Schema.generateNestedSchema(DataType.BAG, DataType.DOUBLE)));
-//        funcList.add(new FuncSpec(FloatAvg.class.getName(), Schema.generateNestedSchema(DataType.BAG, DataType.FLOAT)));
-//        funcList.add(new FuncSpec(IntAvg.class.getName(), Schema.generateNestedSchema(DataType.BAG, DataType.INTEGER)));
-//        funcList.add(new FuncSpec(LongAvg.class.getName(), Schema.generateNestedSchema(DataType.BAG, DataType.LONG)));
-        return funcList;
-    }
-     */
-
-    /* Accumulator interface implementation */
+    
+    /* Accumulator interface */
     
     private Double intermediateSum = null;
     private Double intermediateCount = null;
