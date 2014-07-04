@@ -38,13 +38,32 @@ import org.apache.pig.backend.executionengine.ExecException;
 
 
 /**
- * Generates the average of the values of the first field of a tuple. This class is Algebraic in
- * implemenation, so if possible the execution will be split into a local and global application
+ * Generates the moment of the values of the first field of a tuple. 
+ * The data type of the first field must be double. This class is Algebraic in
+ * implemenation, so if possible the execution will be split into a local and global application.
+ *
+ * Usage in Pig: 
+ *  <code>y = FOREACH g generate MOMENT(x);</code>
+ *
+ * @see <a href="http://en.wikipedia.org/wiki/Moment_(mathematics)">The Wikipedia entry on Moment</a>
+ * 
+ * @author Peng Xie
+ *
  */
 public class MOMENT extends EvalFunc<Double> implements Algebraic, Accumulator<Double> {
     
     private static TupleFactory mTupleFactory = TupleFactory.getInstance();
 
+
+/** Calculates the moment of the data.
+ *
+ * @param input a tuple that contains two elements: 
+ *      a bag of values(type of double) over which the moment will be calculated, and
+ *      the order of the moment (type of Integer, Float or Double). It should be either an integer, a float or a double
+ *
+ * @return the calculated moment of the data
+ *
+ */
     @Override
     public Double exec(Tuple input) throws IOException {
         try {
@@ -66,6 +85,8 @@ public class MOMENT extends EvalFunc<Double> implements Algebraic, Accumulator<D
         }
     }
 
+/** The Initial function.
+ */
     public String getInitial() {
         return Initial.class.getName();
     }
@@ -92,7 +113,7 @@ public class MOMENT extends EvalFunc<Double> implements Algebraic, Accumulator<D
                     Tuple tp = bg.iterator().next();
                     dba = (DataByteArray)tp.get(0);
                 }
-                t.set(0, dba != null ? Math.pow(Double.valueOf(dba.toString()), orderOfMoment) : null);
+                t.set(0, dba != null ? Math.pow(Double.valueOf(dba.toString()), 1) : null);
                 if (dba == null)
                     t.set(1, 0L);
                 else
@@ -201,6 +222,9 @@ public class MOMENT extends EvalFunc<Double> implements Algebraic, Accumulator<D
         return output;
     }
 
+/** Count.
+ *
+ */
     static protected long count(Tuple input) throws ExecException {
         DataBag values = (DataBag)input.get(0);
         long cnt = 0;
@@ -253,17 +277,60 @@ public class MOMENT extends EvalFunc<Double> implements Algebraic, Accumulator<D
 
     /* (non-Javadoc)
      * @see org.apache.pig.EvalFunc#getArgToFuncMapping()
+     */
     @Override
     public List<FuncSpec> getArgToFuncMapping() throws FrontendException {
         List<FuncSpec> funcList = new ArrayList<FuncSpec>();
-        funcList.add(new FuncSpec(this.getClass().getName(), Schema.generateNestedSchema(DataType.TUPLE, DataType.BAG, DataType.DOUBLE)));
-        funcList.add(new FuncSpec(DoubleMoment.class.getName(), Schema.generateNestedSchema(DataType.BAG, DataType.DOUBLE)));
-//        funcList.add(new FuncSpec(FloatAvg.class.getName(), Schema.generateNestedSchema(DataType.BAG, DataType.FLOAT)));
-//        funcList.add(new FuncSpec(IntAvg.class.getName(), Schema.generateNestedSchema(DataType.BAG, DataType.INTEGER)));
-//        funcList.add(new FuncSpec(LongAvg.class.getName(), Schema.generateNestedSchema(DataType.BAG, DataType.LONG)));
+//        funcList.add(new FuncSpec(this.getClass().getName(), 
+//            Schema.generateNestedSchema(
+//                DataType.TUPLE, 
+//                DataType.BAG, 
+//                DataType.DOUBLE
+//            )
+//        ));
+
+
+        Schema schemaDouble = new Schema();
+        schemaDouble.add(
+            new Schema.FieldSchema(
+                "data",
+                // Schema.generateNestedSchema(DataType.BAG, DataType.DOUBLE)
+                DataType.BAG
+            )
+        );
+        schemaDouble.add(
+            new Schema.FieldSchema(
+                "orderOfMoment",
+                DataType.DOUBLE
+            )
+        );
+        funcList.add(new FuncSpec(
+            DoubleMoment.class.getName(), 
+            schemaDouble
+        ));
+
+        Schema schemaInt = new Schema();
+        schemaInt.add(
+            //Schema.generateNestedSchema(DataType.BAG, DataType.DOUBLE)
+            new Schema.FieldSchema(
+                "data",
+                DataType.BAG
+            )
+        );
+        schemaInt.add(
+            new Schema.FieldSchema(
+                "orderOfMoment",
+                DataType.INTEGER
+            )
+        );
+        funcList.add(new FuncSpec(
+            IntMoment.class.getName(), 
+            schemaInt
+        ));
+
+
         return funcList;
     }
-     */
 
     /* Accumulator interface implementation */
     
