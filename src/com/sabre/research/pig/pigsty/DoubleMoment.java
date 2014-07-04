@@ -34,7 +34,6 @@ import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.backend.executionengine.ExecException;
 
-// import org.apache.hadoop.io.WritableComparable;
 
 /**
  * This method should never be used directly, use {@link MOMENT}.
@@ -84,7 +83,7 @@ public class DoubleMoment extends EvalFunc<Double> implements Algebraic, Accumul
                 // input is a bag with one tuple containing
                 // the column we are trying to avg on
                 DataBag bg = (DataBag) input.get(0);
-                Double  orderOfMoment = Double.valueOf(input.get(1).toString());
+                Double  orderOfMoment = (Double)input.get(1);
                 Double d = null;
                 if(bg.iterator().hasNext()) {
                     Tuple tp = bg.iterator().next();
@@ -202,7 +201,7 @@ public class DoubleMoment extends EvalFunc<Double> implements Algebraic, Accumul
 
     static protected Double sum(Tuple input) throws ExecException, IOException {
         DataBag values = (DataBag)input.get(0);
-        Double  orderOfMoment = Double.valueOf(input.get(1).toString());
+        Double  orderOfMoment = (Double) input.get(1);
         
         // if we were handed an empty bag, return NULL
         if(values.size() == 0) {
