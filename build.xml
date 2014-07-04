@@ -1,51 +1,48 @@
-<project name="pigsty" default="compile" basedir=".">
+<project name="pigsty" default="jar" basedir=".">
     <description>
         Statistical Toolkit for Apache Pig users
     </description>
     <!-- set global properties for this build -->
     <property name="src.dir" location="src"/>
+    <property name="doc.dir" location="doc"/>
     <property name="bin.dir" location="bin"/>
     <property name="lib.dir" location="lib"/>
-    <property name="classes.dir" location="${bin.dir}/classes"/>
+    <property name="cls.dir" location="${bin.dir}/classes"/>
     <property name="jar.dir" location="${bin.dir}/jar"/>
     <path id="cp">
         <fileset dir="${lib.dir}" includes="**/*.jar"/>
     </path>
 
-
-    <target name="init">
-    <!-- Create the time stamp -->
-    <tstamp/>
-    <!-- Create the build directory structure used by compile -->
-    <mkdir dir="${bin}"/>
-    </target>
-
-    <target name="compile"
-        description="compile the source " >
-        <mkdir dir="${classes.dir}"/>
-        <!-- Compile the java code from ${src.dir} into ${build} -->
+    <target name="compile" description="compile the source " >
+        <mkdir dir="${cls.dir}"/>
         <javac 
             classpathref="cp" 
             srcdir="${src.dir}" 
-            destdir="${classes.dir}"
+            destdir="${cls.dir}"
             includeantruntime="true"
         />
     </target>
 
-    <target name="jar" depends="compile"
-        description="generate the distribution" >
-        <!-- Create the distribution directory -->
+    <target name="jar" depends="compile" description="generate the distribution" >
         <mkdir dir="${jar.dir}"/>
 
         <!-- Put everything in ${build} into the MyProject-${DSTAMP}.jar file -->
-        <jar destfile="${jar.dir}/pigsty.jar" basedir="${classes.dir}"/>
+        <jar destfile="${jar.dir}/pigsty.jar" basedir="${cls.dir}"/>
     </target>
 
-  <target name="clean"
+    <target name="doc" description="Create documentation" >
+        <mkdir dir="${doc.dir}"/>
+        <javadoc 
+            classpathref="cp"
+            sourcepath="${src.dir}"
+            destdir="${doc.dir}"
+            />
+    </target>
+
+    <target name="clean"
         description="clean up" >
-    <!-- Delete the ${build} and ${dist} directory trees -->
-    <delete dir="${build}"/>
-    <delete dir="${dist}"/>
-  </target>
+        <delete dir="${bin.dir}"/>
+        <delete dir="${doc.dir}"/>
+    </target>
 </project>
 
