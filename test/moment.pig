@@ -1,8 +1,12 @@
 REGISTER bin/jar/pigsty.jar;
 DEFINE MOMENT com.sabre.research.pig.pigsty.MOMENT;
-DEFINE DoubleMoment com.sabre.research.pig.pigsty.DoubleMoment;
 
-a = LOAD 'sample' AS (v:double);
+a = LOAD 'data/moment' AS (v:double);
 g = GROUP a ALL;
-b = FOREACH g GENERATE MOMENT(a.v,2) AS moment; 
-DUMP b;
+b = FOREACH g GENERATE 
+        5 AS order: int,
+        a;
+c = FOREACH b GENERATE
+        MOMENT(a,5) AS moment;
+ILLUSTRATE c;
+DUMP c;
