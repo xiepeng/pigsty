@@ -240,6 +240,7 @@ public class MOMENT extends EvalFunc<Double> implements Algebraic, Accumulator<D
 
     static protected Double sum(Tuple input) throws ExecException, IOException {
         DataBag values = (DataBag)input.get(0);
+        Double orderOfMoment = Double.valueOf(input.get(1).toString());
         
         // if we were handed an empty bag, return NULL
         if(values.size() == 0) {
@@ -255,7 +256,7 @@ public class MOMENT extends EvalFunc<Double> implements Algebraic, Accumulator<D
                 Double d = dba != null ? Double.valueOf(dba.toString()) : null;
                 if (d == null) continue;
                 sawNonNull = true;
-                sum += d;
+                sum += Math.pow(d, orderOfMoment);
             }catch(RuntimeException exp) {
                 int errCode = 2103;
                 String msg = "Problem while computing sum of doubles.";
@@ -307,6 +308,25 @@ public class MOMENT extends EvalFunc<Double> implements Algebraic, Accumulator<D
         funcList.add(new FuncSpec(
             DoubleMoment.class.getName(), 
             schemaDouble
+        ));
+
+        Schema schemaFloat = new Schema();
+        schemaFloat.add(
+            new Schema.FieldSchema(
+                "data",
+                // Schema.generateNestedSchema(DataType.BAG, DataType.DOUBLE)
+                DataType.BAG
+            )
+        );
+        schemaFloat.add(
+            new Schema.FieldSchema(
+                "orderOfMoment",
+                DataType.FLOAT
+            )
+        );
+        funcList.add(new FuncSpec(
+            FloatMoment.class.getName(), 
+            schemaFloat
         ));
 
         Schema schemaInt = new Schema();
