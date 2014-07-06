@@ -41,9 +41,16 @@ import org.apache.pig.backend.executionengine.ExecException;
  * Generates the moment of the values of the first field of a tuple. 
  * The data type of the first field must be double. This class is Algebraic in
  * implemenation, so if possible the execution will be split into a local and global application.
- *
+ * <p>
+ * <p>
  * Usage in Pig: 
- *  <code>y = FOREACH g generate MOMENT(x);</code>
+ * <pre><code>
+ *  x = LOAD 'data' AS (v:double);
+ *  g = GROUP x ALL;
+ *  y = FOREACH g generate MOMENT(x,4) AS theFourthMomentOfX;
+ *  DUMP y;
+ * </code></pre>
+ * For more details see the {@link #exec(Tuple) exec} method.
  *
  * @see <a href="http://en.wikipedia.org/wiki/Moment_(mathematics)">The Wikipedia entry on Moment</a>
  * 
@@ -58,8 +65,8 @@ public class MOMENT extends EvalFunc<Double> implements Algebraic, Accumulator<D
 /** Calculates the moment of the data.
  *
  * @param input a tuple that contains two elements: 
- *      a bag of values(type of double) over which the moment will be calculated, and
- *      the order of the moment (type of Integer, Float or Double). It should be either an integer, a float or a double
+ *      a bag of values(must be type of double) over which the moment will be calculated, and
+ *      the order of the moment (could be type of Integer, Float or Double). It should be either an integer, a float or a double
  *
  * @return the calculated moment of the data
  *
